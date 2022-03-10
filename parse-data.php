@@ -42,7 +42,22 @@ foreach (glob(__DIR__ . "/list/*") as $f) {
         $values['common_id'] = 'File:' . $target;
         $values['caption'] = $obj->Title;
         $values['description'] = trim($obj->CustomColumns->Description);
-        $values['date'] = $obj->CustomColumns->dates;
+        if ('' == trim($obj->CustomColumns->dates) ){ 
+            $values['date'] = '';
+        } else if (!preg_match('#\d#u', $obj->CustomColumns->dates)) {
+            $values['date'] = '';
+        } else if (preg_match('#(出版日期|創作時間|拍攝時間|發表日期|採訪時間|入藏日期|入庫日期) / (\d+)(/\d+)?(/\d+)?#u', $obj->CustomColumns->dates, $matches)) {
+            $values['date'] = $matches[2];
+            if ($matches[3]) {
+                $values['date'] .= '-' . ltrim($matches[3], '/');
+            }
+            if ($matches[4]) {
+                $values['date'] .= '-' . ltrim($matches[4], '/');
+            }
+            
+        } else {
+            throw new Exception($obj->CustomColumns->dates);
+        }
         $values['img_url'] = $imgurl;
         $values['lng'] = $obj->CustomColumns->Keyword_Longitude;
         $values['lat'] = $obj->CustomColumns->Keyword_Latitude;
