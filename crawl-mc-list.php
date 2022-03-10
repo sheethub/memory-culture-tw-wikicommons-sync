@@ -1,6 +1,8 @@
 <?php
 
-// curl 'https://memory.culture.tw/Home/Result?Filter_Keyword_Rights_2=CC%20BY&Filter_Keyword_Des_Rights_2=CC0&SearchMode=Precise&LanguageMode=Transfer&PageSize=2000&OrderColumn=imilarity' > list-2000.html
+if (!file_exists('list-2000.html')) {
+    system("curl 'https://memory.culture.tw/Home/Result?Filter_Keyword_Rights_2=CC%20BY&Filter_Keyword_Des_Rights_2=CC0&SearchMode=Precise&LanguageMode=Transfer&PageSize=2000&OrderColumn=imilarity' > list-2000.html");
+}
 $content = file_get_contents('list-2000.html');
 preg_match_all('#/Home/Detail\?Id=([^&]+)&IndexCode=([^&]+)#', $content, $matches);
 $url = 'https://memory.culture.tw/Home/GetWebGenieAPIData';
