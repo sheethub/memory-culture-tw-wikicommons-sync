@@ -26,7 +26,9 @@ foreach (glob(__DIR__ . "/list/*") as $f) {
     foreach ($images as $imgurl) {
         $name = basename($imgurl);
         if (count($images) == 1) {
-            $target = "{$title}" . '.' . explode('.', $name)[1];
+            $terms = explode('.', $name);
+
+            $target = "{$title}" . '.' . $terms[count($terms) - 1];
         } else {
             $target = "{$title}-{$name}";
         }
