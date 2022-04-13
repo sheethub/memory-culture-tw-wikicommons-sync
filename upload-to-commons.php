@@ -6,6 +6,7 @@ if (file_exists('config.php')) {
 
 $get_text = function($values) {
     $categories = [];
+    $values['category'] = 'Taiwan Culture Memory Bank';
     if ($values['category']) {
         foreach (explode(';', $values['category']) as $c) {
             $categories[] = '[[Category:' . $c . ']]';
@@ -104,7 +105,16 @@ while ($rows = fgetcsv($fp)) {
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
     $content = curl_exec($curl);
-    print_r($values);
-    print_r($content);
-    exit;
+    if (!$obj = json_decode($content)) {
+        error_log("{$values['common_id']} failed");
+        file_put_contents('log', json_encode([$values['common_id'], 'json error']) . "\n", FILE_APPEND);
+        continue;
+    }
+    if ($obj->upload->Result == 'Success') {
+        error_log("{$values['common_id']} ok");
+        file_put_contents('log', json_encode([$values['common_id'], 'ok']) . "\n", FILE_APPEND);
+        continue;
+    }
+    error_log("{$values['common_id']} failed");
+    file_put_contents('log', json_encode([$values['common_id'], $content]) . "\n", FILE_APPEND);
 }
