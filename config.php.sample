@@ -1,0 +1,4 @@
+<?php
+
+putenv('LGNAME=__BOT_ACCOUNT__');
+putenv('LGPASSWORD=__BOT_PASSWORD__');
