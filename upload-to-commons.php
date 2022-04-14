@@ -4,6 +4,19 @@ if (file_exists('config.php')) {
     include(__DIR__ . '/config.php');
 }
 
+$fp = fopen('log', 'r');
+$imported = [];
+while ($line = fgets($fp)) {
+    if (!$obj = json_decode($line)) {
+        continue;
+    }
+    if ($obj[1] == 'ok') {
+        $imported[$obj[0]] = true;
+    } elseif (json_decode($obj[1])->upload->result == 'Warning') {
+        $imported[$obj[0]] = true;
+    }
+}
+
 $get_text = function($values) {
     $categories = [];
     $values['category'] = 'Taiwan Culture Memory Bank';
@@ -81,12 +94,28 @@ $fp = fopen('output.csv', 'r');
 $columns = fgetcsv($fp);
 while ($rows = fgetcsv($fp)) {
     $values = array_combine($columns, $rows);
-    if ($ret = $check_online($values['common_id'])) {
+    // https://commons.wikimedia.org/w/api.php?action=query&titles=File%3A%E6%B3%89%E5%B7%9E%E5%9F%A4.jpg&prop=imageinfo&iiprop=extmetadata&format=json 裡面不包含 credits, 跳過這方法
+    /*if ($ret = $check_online($values['common_id'])) {
         if (strpos($ret[0]->imageinfo[0]->extmetadata->Credit->value, 'https://memory.culture.tw/')) {
             error_log("skip {$values['common_id']}");
             continue;
         }
         throw new Exception("TODO, 檢查資料是否正確");
+    }*/
+    $values['common_id'] = str_replace(' ', '_', $values['common_id']);
+    if (array_key_exists($values['common_id'], $imported)) {
+        continue;
+    }
+
+    $url = 'https://commons.wikimedia.org/wiki/' . urlencode($values['common_id']);
+    $content = @file_get_contents($url);
+    if (strpos($content, 'https://memory.culture.tw')) {
+        error_log("skip {$values['common_id']}");
+        continue;
+    } else if ($content) {
+        error_log("{$values['common_id']} failed, existed");
+        file_put_contents('log', json_encode([$values['common_id'], 'existed'], JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND);
+        continue;
     }
 
     if (!file_exists('tmpfile') or !file_exists('tmpfile.url') or file_get_contents('tmpfile.url') != $values['img_url']) {
@@ -107,14 +136,14 @@ while ($rows = fgetcsv($fp)) {
     $content = curl_exec($curl);
     if (!$obj = json_decode($content)) {
         error_log("{$values['common_id']} failed");
-        file_put_contents('log', json_encode([$values['common_id'], 'json error']) . "\n", FILE_APPEND);
+        file_put_contents('log', json_encode([$values['common_id'], 'json error'], JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND);
         continue;
     }
-    if ($obj->upload->Result == 'Success') {
+    if ($obj->upload->result == 'Success') {
         error_log("{$values['common_id']} ok");
-        file_put_contents('log', json_encode([$values['common_id'], 'ok']) . "\n", FILE_APPEND);
+        file_put_contents('log', json_encode([$values['common_id'], 'ok'], JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND);
         continue;
     }
     error_log("{$values['common_id']} failed");
-    file_put_contents('log', json_encode([$values['common_id'], $content]) . "\n", FILE_APPEND);
+    file_put_contents('log', json_encode([$values['common_id'], json_decode($content)], JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND);
 }
